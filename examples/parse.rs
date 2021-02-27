@@ -12,7 +12,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let reader = BufReader::new(file);
     let parsed = Hangouts::from_reader(reader)?;
 
-    println!("{:#?}", parsed);
+    println!(
+        "{:#?}",
+        parsed
+            .conversations
+            .iter()
+            .map(|c| &c.header.details.self_conversation_state.view)
+            .collect::<Vec<_>>()
+    );
 
     Ok(())
 }

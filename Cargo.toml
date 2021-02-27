@@ -4,6 +4,15 @@ version = "0.1.0"
 authors = ["Eric Zhao <21zhaoe@protonmail.com>"]
 edition = "2018"
 
+[features]
+# Enable raw module.
+raw = []
+
+# Serde trait implementations on all structs.
+serde-impl = ["serde", "chrono/serde"]
+
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.59"
+chrono = "0.4"
+thiserror = "1.0"
+
+serde = { version = "1.0", features = ["derive"], optional = true }
