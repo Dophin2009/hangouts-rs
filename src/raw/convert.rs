@@ -1,12 +1,14 @@
-use crate::{raw, ParticipantType, ReadState};
 use crate::{
-    Conversation, ConversationStatus, Hangouts, InvitationAffinity, InvitationData,
-    InvitationStatus, LinkSharingStatus, NotificationLevel, Participant, ParticipantId, SelfState,
-    View,
+    raw, Address, AttachmentSegment, ChatMessage, ChatSegment, Conversation, ConversationRename,
+    ConversationStatus, EmbedItem, Event, EventData, Formatting, Geo, HangoutEvent,
+    HangoutEventType, Hangouts, InvitationAffinity, InvitationData, InvitationStatus,
+    LinkSharingStatus, MediaType, MembershipChange, MembershipChangeType, NotificationLevel,
+    Participant, ParticipantId, ParticipantType, Photo, PlaceV2, ReadState, RepresentativeImage,
+    SelfEventState, SelfState, ThingV2, Thumbnail, View,
 };
 
 use std::collections::HashMap;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::num::ParseIntError;
 
@@ -108,7 +110,11 @@ impl TryFrom<raw::Conversation> for Conversation {
             })
             .collect();
 
-        let events = Vec::new();
+        let events = val
+            .events
+            .into_iter()
+            .map(TryFrom::try_from)
+            .collect::<Result<_, _>>()?;
 
         Ok(Self {
             conversation_id,
@@ -119,6 +125,75 @@ impl TryFrom<raw::Conversation> for Conversation {
             self_state,
             sort_timestamp,
             group_link_sharing_status,
+        })
+    }
+}
+
+impl TryFrom<raw::Event> for Event {
+    type Error = ConversionError;
+
+    fn try_from(val: raw::Event) -> Result<Self, Self::Error> {
+        let id = val.header.event_id;
+        let sender = val.header.sender_id.into();
+        let timestamp = from_timestamp(val.header.timestamp.parse()?);
+
+        let data = match val.data {
+            raw::EventData::ChatMessage {
+                message_content,
+                annotation: _annotation,
+            } => EventData::ChatMessage(ChatMessage {
+                contents: message_content
+                    .segments
+                    .into_iter()
+                    .map(From::from)
+                    .collect(),
+                attachments: message_content
+                    .attachments
+                    .into_iter()
+                    .map(From::from)
+                    .collect(),
+            }),
+            raw::EventData::HangoutEvent {
+                data,
+                media_type,
+                participant_id,
+            } => EventData::HangoutEvent(HangoutEvent {
+                typ: data.try_into()?,
+                media_type: media_type.map(From::from),
+                participants: participant_id.into_iter().map(From::from).collect(),
+            }),
+            raw::EventData::MembershipChange {
+                typ,
+                participant_id,
+            } => EventData::MembershipChange(MembershipChange {
+                typ: typ.into(),
+                participants: participant_id.into_iter().map(From::from).collect(),
+            }),
+            raw::EventData::ConversationRename {
+                new_name: new,
+                old_name: old,
+            } => EventData::ConversationRename(ConversationRename { new, old }),
+        };
+
+        let self_state = SelfEventState {
+            client_generated_id: val.header.self_event_state.client_generated_id,
+            notification_level: val
+                .header
+                .self_event_state
+                .notification_level
+                .map(From::from),
+        };
+        let advances_sort_timestamp = val.header.advances_sort_timestamp;
+        let version = val.header.event_version.parse()?;
+
+        Ok(Self {
+            id,
+            sender,
+            timestamp,
+            data,
+            self_state,
+            advances_sort_timestamp,
+            version,
         })
     }
 }
@@ -202,6 +277,198 @@ impl From<raw::LinkSharingStatus> for LinkSharingStatus {
         match val {
             raw::LinkSharingStatus::Off => Self::Off,
             raw::LinkSharingStatus::On => Self::On,
+        }
+    }
+}
+
+impl From<raw::ChatSegment> for ChatSegment {
+    #[inline]
+    fn from(val: raw::ChatSegment) -> Self {
+        match val {
+            raw::ChatSegment::Text { text, formatting } => Self::Text {
+                text,
+                format: formatting.into(),
+            },
+            raw::ChatSegment::Link {
+                text,
+                link_data,
+                formatting,
+            } => Self::Link {
+                text,
+                target: link_data.link_target,
+                display_url: link_data.display_url,
+                format: formatting.into(),
+            },
+            raw::ChatSegment::LineBreak { text, formatting } => Self::LinkBreak {
+                text,
+                format: formatting.into(),
+            },
+        }
+    }
+}
+
+impl From<raw::AttachmentSegment> for AttachmentSegment {
+    #[inline]
+    fn from(val: raw::AttachmentSegment) -> Self {
+        Self {
+            id: val.id,
+            item: val.embed_item.into(),
+        }
+    }
+}
+
+impl From<raw::EmbedItem> for EmbedItem {
+    #[inline]
+    fn from(val: raw::EmbedItem) -> Self {
+        Self {
+            id: val.id,
+            photo: val.plus_photo.map(From::from),
+            place: val.place_v2.map(From::from),
+            thing: val.thing_v2.map(From::from),
+        }
+    }
+}
+
+impl From<raw::PlusPhoto> for Photo {
+    #[inline]
+    fn from(val: raw::PlusPhoto) -> Self {
+        Self {
+            media_type: val.media_type.into(),
+            thumbnail: val.thumbnail.into(),
+            album_id: val.album_id,
+            photo_id: val.photo_id,
+            stream_id: val.stream_id,
+            url: val.url,
+            download_url: val.download_url,
+            original_url: val.original_content_url,
+            owner_obfuscated_id: val.owner_obfuscated_id,
+        }
+    }
+}
+
+impl From<raw::Thumbnail> for Thumbnail {
+    #[inline]
+    fn from(val: raw::Thumbnail) -> Self {
+        Self {
+            url: val.url,
+            height: val.height_px,
+            width: val.width_px,
+        }
+    }
+}
+
+impl From<raw::PlaceV2> for PlaceV2 {
+    #[inline]
+    fn from(val: raw::PlaceV2) -> Self {
+        Self {
+            url: val.url,
+            name: val.name,
+            address: val.address.into(),
+            geo: val.geo.into(),
+            place_id: val.place_id,
+            cluster_id: val.cluster_id,
+            reference_id: val.reference_id,
+            representative_image: val.representative_image.into(),
+        }
+    }
+}
+
+impl From<raw::Address> for Address {
+    #[inline]
+    fn from(val: raw::Address) -> Self {
+        let postal = val.postal_address_v2;
+        Self {
+            name: postal.name,
+            street: postal.street_address,
+            locality: postal.address_locality,
+            region: postal.address_region,
+            country: postal.address_country,
+            postal_code: postal.postal_code,
+        }
+    }
+}
+
+impl From<raw::Geo> for Geo {
+    #[inline]
+    fn from(val: raw::Geo) -> Self {
+        Self {
+            latitude: val.geo_coordinates_v2.latitude,
+            longitude: val.geo_coordinates_v2.longitude,
+        }
+    }
+}
+
+impl From<raw::RepresentativeImage> for RepresentativeImage {
+    #[inline]
+    fn from(val: raw::RepresentativeImage) -> Self {
+        let obj = val.image_object_v2;
+        Self {
+            id: val.id,
+            url: obj.url,
+            width: obj.width.map(|v| v.parse().unwrap()),
+            height: obj.height.map(|v| v.parse().unwrap()),
+        }
+    }
+}
+
+impl From<raw::ThingV2> for ThingV2 {
+    #[inline]
+    fn from(val: raw::ThingV2) -> Self {
+        Self {
+            url: val.url,
+            name: val.name,
+            representative_image: val.representative_image.into(),
+        }
+    }
+}
+
+impl From<raw::Formatting> for Formatting {
+    #[inline]
+    fn from(val: raw::Formatting) -> Self {
+        Self {
+            bold: val.bold,
+            italics: val.italics,
+            strikethrough: val.strikethrough,
+            underline: val.underline,
+        }
+    }
+}
+
+impl TryFrom<raw::HangoutEvent> for HangoutEventType {
+    type Error = ParseIntError;
+    #[inline]
+    fn try_from(val: raw::HangoutEvent) -> Result<Self, Self::Error> {
+        let typ = match val {
+            raw::HangoutEvent::StartHangout => HangoutEventType::Start,
+            raw::HangoutEvent::EndHangout {
+                hangout_duration_secs,
+            } => HangoutEventType::End {
+                duration: hangout_duration_secs.parse()?,
+            },
+        };
+        Ok(typ)
+    }
+}
+
+impl From<raw::MediaType> for MediaType {
+    #[inline]
+    fn from(val: raw::MediaType) -> Self {
+        match val {
+            raw::MediaType::AudioOnly => Self::Audio,
+            raw::MediaType::Video => Self::Video,
+            raw::MediaType::AudioVideo => Self::AudioVideo,
+            raw::MediaType::Photo => Self::Photo,
+            raw::MediaType::AnimatedPhoto => Self::AnimatedPhoto,
+        }
+    }
+}
+
+impl From<raw::MembershipChangeType> for MembershipChangeType {
+    #[inline]
+    fn from(val: raw::MembershipChangeType) -> Self {
+        match val {
+            raw::MembershipChangeType::Join => Self::Join,
+            raw::MembershipChangeType::Leave => Self::Leave,
         }
     }
 }

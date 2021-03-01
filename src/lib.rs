@@ -224,9 +224,6 @@ pub struct EmbedItem {
     pub photo: Option<Photo>,
     pub place: Option<PlaceV2>,
     pub thing: Option<ThingV2>,
-
-    // TODO: Not needed?
-    pub types: Vec<EmbedItemType>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -249,7 +246,7 @@ pub struct Photo {
     pub stream_id: Vec<String>,
 
     pub url: String,
-    pub download_url: String,
+    pub download_url: Option<String>,
 
     pub original_url: String,
     pub owner_obfuscated_id: String,
@@ -258,8 +255,8 @@ pub struct Photo {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct Thumbnail {
-    pub height_px: u64,
-    pub width_px: u64,
+    pub height: u64,
+    pub width: u64,
     pub url: Option<String>,
 }
 
