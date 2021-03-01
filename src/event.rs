@@ -48,6 +48,68 @@ pub enum EventData {
     ConversationRename(ConversationRename),
 }
 
+impl EventData {
+    /// Returns `true` if the event is [`Self::ChatMessage`].
+    #[inline]
+    pub fn is_chat_message(&self) -> bool {
+        matches!(self, Self::ChatMessage(..))
+    }
+
+    #[inline]
+    pub fn as_chat_message(&self) -> Option<&ChatMessage> {
+        if let Self::ChatMessage(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    /// Returns `true` if the event is [`Self::HangoutEvent`].
+    #[inline]
+    pub fn is_hangout_event(&self) -> bool {
+        matches!(self, Self::HangoutEvent(..))
+    }
+
+    #[inline]
+    pub fn as_hangout_event(&self) -> Option<&HangoutEvent> {
+        if let Self::HangoutEvent(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    /// Returns `true` if the event is [`Self::MembershipChange`].
+    #[inline]
+    pub fn is_membership_change(&self) -> bool {
+        matches!(self, Self::MembershipChange(..))
+    }
+
+    #[inline]
+    pub fn as_membership_change(&self) -> Option<&MembershipChange> {
+        if let Self::MembershipChange(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    /// Returns `true` if the event is [`Self::ConversationRename`].
+    #[inline]
+    pub fn is_conversation_rename(&self) -> bool {
+        matches!(self, Self::ConversationRename(..))
+    }
+
+    #[inline]
+    pub fn as_conversation_rename(&self) -> Option<&ConversationRename> {
+        if let Self::ConversationRename(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+}
+
 /// A regular chat message event body.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
@@ -56,6 +118,19 @@ pub struct ChatMessage {
     pub contents: Vec<ChatSegment>,
     /// List of attachments included in the message.
     pub attachments: Vec<AttachmentSegment>,
+}
+
+impl ChatMessage {
+    #[inline]
+    pub fn contents_as_str(&self) -> String {
+        self.contents
+            .iter()
+            .map(|seg| seg.text())
+            .fold(String::new(), |mut acc, s| {
+                acc.push_str(s);
+                acc
+            })
+    }
 }
 
 /// A segment of a chat message.
@@ -86,6 +161,49 @@ pub enum ChatSegment {
         /// Format of the text content.
         format: Formatting,
     },
+}
+
+impl ChatSegment {
+    /// Returns the text string of the segment.
+    #[inline]
+    pub fn text(&self) -> &str {
+        match self {
+            Self::Text { text, .. } => &text,
+            Self::Link { text, .. } => &text,
+            Self::LinkBreak { text, .. } => match text {
+                Some(text) => &text,
+                None => "\n",
+            },
+        }
+    }
+
+    /// Returns the [`Formatting`] of the segment.
+    #[inline]
+    pub fn formatting(&self) -> &Formatting {
+        match self {
+            Self::Text { format, .. } => format,
+            Self::Link { format, .. } => format,
+            Self::LinkBreak { format, .. } => format,
+        }
+    }
+
+    /// Returns `true` if the chat_segment is [`Self::Text`].
+    #[inline]
+    pub fn is_text(&self) -> bool {
+        matches!(self, Self::Text { .. })
+    }
+
+    /// Returns `true` if the chat_segment is [`Self::Link`].
+    #[inline]
+    pub fn is_link(&self) -> bool {
+        matches!(self, Self::Link { .. })
+    }
+
+    /// Returns `true` if the chat_segment is [`Self::LinkBreak`].
+    #[inline]
+    pub fn is_link_break(&self) -> bool {
+        matches!(self, Self::LinkBreak { .. })
+    }
 }
 
 /// Formatting data for a text segment.
@@ -260,6 +378,20 @@ pub enum HangoutEventType {
     },
 }
 
+impl HangoutEventType {
+    /// Returns `true` if the event type is [`Self::Start`].
+    #[inline]
+    pub fn is_start(&self) -> bool {
+        matches!(self, Self::Start)
+    }
+
+    /// Returns `true` if the event type is [`Self::End`].
+    #[inline]
+    pub fn is_end(&self) -> bool {
+        matches!(self, Self::End { .. })
+    }
+}
+
 /// The type of a media attachment or hangout event.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
@@ -274,6 +406,38 @@ pub enum MediaType {
     Photo,
     /// Animated photo, such as a gif.
     AnimatedPhoto,
+}
+
+impl MediaType {
+    /// Returns `true` if the media type is [`Self::Audio`].
+    #[inline]
+    pub fn is_audio(&self) -> bool {
+        matches!(self, Self::Audio)
+    }
+
+    /// Returns `true` if the media type is [`Self::Video`].
+    #[inline]
+    pub fn is_video(&self) -> bool {
+        matches!(self, Self::Video)
+    }
+
+    /// Returns `true` if the media type is [`Self::AudioVideo`].
+    #[inline]
+    pub fn is_audio_video(&self) -> bool {
+        matches!(self, Self::AudioVideo)
+    }
+
+    /// Returns `true` if the media type is [`Self::Photo`].
+    #[inline]
+    pub fn is_photo(&self) -> bool {
+        matches!(self, Self::Photo)
+    }
+
+    /// Returns `true` if the media type is [`Self::AnimatedPhoto`].
+    #[inline]
+    pub fn is_animated_photo(&self) -> bool {
+        matches!(self, Self::AnimatedPhoto)
+    }
 }
 
 /// A conversation participant membership change event.
@@ -294,6 +458,20 @@ pub enum MembershipChangeType {
     Join,
     /// Participants left the conversation.
     Leave,
+}
+
+impl MembershipChangeType {
+    /// Returns `true` if the change type is [`Self::Join`].
+    #[inline]
+    pub fn is_join(&self) -> bool {
+        matches!(self, Self::Join)
+    }
+
+    /// Returns `true` if the change type is [`Self::Leave`].
+    #[inline]
+    pub fn is_leave(&self) -> bool {
+        matches!(self, Self::Leave)
+    }
 }
 
 /// A conversation rename event.

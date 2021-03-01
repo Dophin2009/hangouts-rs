@@ -45,6 +45,23 @@ pub struct Conversation {
     pub group_link_sharing_status: LinkSharingStatus,
 }
 
+impl Conversation {
+    /// Get the data for all the current participants in the conversation.
+    #[inline]
+    pub fn current_participants(&self) -> Vec<&Participant> {
+        self.current_participants
+            .iter()
+            .map(|id| self.participants.get(id).unwrap())
+            .collect()
+    }
+
+    /// Sort the events by timestamp, from oldest to newest.
+    #[inline]
+    pub fn sort_events_by_time(&mut self) {
+        self.events.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+    }
+}
+
 /// A participant in a conversation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
@@ -60,6 +77,14 @@ pub struct Participant {
 
     /// Read state for the participant.
     pub read_state: ReadState,
+}
+
+impl Participant {
+    /// Get the name of the participant, if present.
+    #[inline]
+    pub fn name(&self) -> Option<&String> {
+        self.fallback_name.as_ref()
+    }
 }
 
 /// Composite ID for a participant user.
@@ -78,6 +103,20 @@ pub struct ParticipantId {
 pub enum ParticipantType {
     Gaia,
     OffNetworkPhone,
+}
+
+impl ParticipantType {
+    /// Returns `true` if the participant type is [`Self::Gaia`].
+    #[inline]
+    pub fn is_gaia(&self) -> bool {
+        matches!(self, Self::Gaia)
+    }
+
+    /// Returns `true` if the participant type is [`Self::OffNetworkPhone`].
+    #[inline]
+    pub fn is_off_network_phone(&self) -> bool {
+        matches!(self, Self::OffNetworkPhone)
+    }
 }
 
 /// Metadata regarding the user's status in a conversation.
@@ -105,6 +144,20 @@ pub enum ConversationStatus {
     Invited,
 }
 
+impl ConversationStatus {
+    /// Returns `true` if the status is [`Self::Active`].
+    #[inline]
+    pub fn is_active(&self) -> bool {
+        matches!(self, Self::Active)
+    }
+
+    /// Returns `true` if the status is [`Self::Invited`].
+    #[inline]
+    pub fn is_invited(&self) -> bool {
+        matches!(self, Self::Invited)
+    }
+}
+
 /// Invitation status of a participant.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
@@ -113,6 +166,20 @@ pub enum InvitationStatus {
     Pending,
     /// The invitation has been accepted.
     Accepted,
+}
+
+impl InvitationStatus {
+    /// Returns `true` if the invitation status is [`Self::Pending`].
+    #[inline]
+    pub fn is_pending(&self) -> bool {
+        matches!(self, Self::Pending)
+    }
+
+    /// Returns `true` if the invitation status is [`Self::Accepted`].
+    #[inline]
+    pub fn is_accepted(&self) -> bool {
+        matches!(self, Self::Accepted)
+    }
 }
 
 /// Metadata for the invitation to the user to join a conversation.
@@ -139,6 +206,26 @@ pub enum InvitationAffinity {
     High,
 }
 
+impl InvitationAffinity {
+    /// Returns `true` if the affinity is [`Self::None`].
+    #[inline]
+    pub fn is_none(&self) -> bool {
+        matches!(self, Self::None)
+    }
+
+    /// Returns `true` if the affinity is [`Self::Low`].
+    #[inline]
+    pub fn is_low(&self) -> bool {
+        matches!(self, Self::Low)
+    }
+
+    /// Returns `true` if the affinity is [`Self::High`].
+    #[inline]
+    pub fn is_high(&self) -> bool {
+        matches!(self, Self::High)
+    }
+}
+
 /// Notification ring level for a participant in a conversation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
@@ -147,6 +234,20 @@ pub enum NotificationLevel {
     Quiet,
     /// Notifications have been set to ring.
     Ring,
+}
+
+impl NotificationLevel {
+    /// Returns `true` if the notification level is [`Self::Quiet`].
+    #[inline]
+    pub fn is_quiet(&self) -> bool {
+        matches!(self, Self::Quiet)
+    }
+
+    /// Returns `true` if the notification level is [`Self::Ring`].
+    #[inline]
+    pub fn is_ring(&self) -> bool {
+        matches!(self, Self::Ring)
+    }
 }
 
 /// Last-read information in a conversation for a participant.
@@ -167,6 +268,20 @@ pub enum View {
     Archived,
 }
 
+impl View {
+    /// Returns `true` if the view is [`Self::Inbox`].
+    #[inline]
+    pub fn is_inbox(&self) -> bool {
+        matches!(self, Self::Inbox)
+    }
+
+    /// Returns `true` if the view is [`Self::Archived`].
+    #[inline]
+    pub fn is_archived(&self) -> bool {
+        matches!(self, Self::Archived)
+    }
+}
+
 /// Link sharing enabled/disabled setting for a conversation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
@@ -175,4 +290,18 @@ pub enum LinkSharingStatus {
     Off,
     /// Link sharing is enabled.
     On,
+}
+
+impl LinkSharingStatus {
+    /// Returns `true` if the link_sharing_status is [`Self::Off`].
+    #[inline]
+    pub fn is_off(&self) -> bool {
+        matches!(self, Self::Off)
+    }
+
+    /// Returns `true` if the link_sharing_status is [`Self::On`].
+    #[inline]
+    pub fn is_on(&self) -> bool {
+        matches!(self, Self::On)
+    }
 }
