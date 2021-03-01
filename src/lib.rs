@@ -4,6 +4,8 @@ pub mod raw;
 
 mod event;
 
+use std::collections::HashMap;
+
 pub use crate::event::*;
 pub use chrono;
 
@@ -26,8 +28,11 @@ pub struct Conversation {
 
     /// Name of the conversation. Typically [`None`] if the conversation is one-on-one.
     pub name: Option<String>,
-    /// List of participants in the conversation.
-    pub participants: Vec<Participant>,
+
+    /// List of current participants in the conversation.
+    pub current_participants: Vec<ParticipantId>,
+    /// List of all past and present participants in the conversation.
+    pub participants: HashMap<ParticipantId, Participant>,
     /// List of conversation events.
     pub events: Vec<Event>,
 
@@ -44,8 +49,6 @@ pub struct Conversation {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct Participant {
-    /// ID of the participant.
-    pub id: ParticipantId,
     /// Fallback name.
     pub fallback_name: Option<String>,
     /// Type of the participant.
@@ -60,7 +63,7 @@ pub struct Participant {
 }
 
 /// Composite ID for a participant user.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct ParticipantId {
     /// Gaia ID component.

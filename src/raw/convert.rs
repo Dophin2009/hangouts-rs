@@ -94,19 +94,31 @@ impl TryFrom<raw::Conversation> for Conversation {
             })
             .collect::<Result<_, _>>()?;
 
+        let current_participants = val
+            .header
+            .details
+            .current_participant
+            .into_iter()
+            .map(From::from)
+            .collect();
+
         // Convert participant data.
         let participants = val
             .header
             .details
             .participant_data
             .into_iter()
-            .map(|pd| Participant {
-                id: pd.id.clone().into(),
-                typ: pd.participant_type.map(From::from),
-                fallback_name: pd.fallback_name,
-                invitation_status: pd.invitation_status.map(From::from),
-                new_invitation_status: pd.new_invitation_status.map(From::from),
-                read_state: read_states.remove(&pd.id).unwrap(),
+            .map(|pd| {
+                (
+                    pd.id.clone().into(),
+                    Participant {
+                        typ: pd.participant_type.map(From::from),
+                        fallback_name: pd.fallback_name,
+                        invitation_status: pd.invitation_status.map(From::from),
+                        new_invitation_status: pd.new_invitation_status.map(From::from),
+                        read_state: read_states.remove(&pd.id).unwrap(),
+                    },
+                )
             })
             .collect();
 
@@ -120,6 +132,7 @@ impl TryFrom<raw::Conversation> for Conversation {
             conversation_id,
             id,
             name,
+            current_participants,
             participants,
             events,
             self_state,
