@@ -19,43 +19,35 @@ pub struct Conversation {
     pub conversation_id: String,
     pub id: String,
 
-    pub details: ConversationDetails,
-    pub self_conversation_state: SelfConversationState,
-}
+    pub typ: ConversationType,
+    pub participants: Vec<Participant>,
 
-impl Conversation {
-    /// Return the type of the conversation.
-    #[inline]
-    pub fn typ(&self) -> ConversationType {
-        match &self.details {
-            ConversationDetails::OneOnOne { .. } => ConversationType::OneToOne,
-            ConversationDetails::Group { .. } => ConversationType::Group,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum ConversationDetails {
-    OneOnOne {},
-    Group { name: String },
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct GroupConversation {}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct SelfConversationState {
-    pub read_state: ReadState,
+    // pub read_state: ReadState,
     pub status: ConversationStatus,
     pub notification_level: NotificationLevel,
+    // TODO: Better name for this property
     pub views: Vec<View>,
+    pub invitation: InvitationData,
 
-    pub inviter: ParticipantId,
-    pub invite_timestamp: DateTime<Utc>,
     pub sort_timestamp: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub struct Participant {}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum ConversationType {
+    Group { name: String },
+    OneOnOne,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub struct InvitationData {
+    pub inviter: ParticipantId,
+    pub timestamp: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -63,13 +55,6 @@ pub struct SelfConversationState {
 pub enum ConversationStatus {
     Active,
     Invited,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum ConversationType {
-    Group,
-    OneToOne,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -90,7 +75,7 @@ pub struct ParticipantId {
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct ReadState {
     pub participant_id: ParticipantId,
-    pub latest_read_timestamp: DateTime<Utc>,
+    pub timestamp: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
