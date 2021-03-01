@@ -1,7 +1,7 @@
 use crate::raw;
 use crate::{
-    Conversation, ConversationStatus, ConversationType, Hangouts, InvitationData,
-    NotificationLevel, ParticipantId, View,
+    Conversation, ConversationStatus, Hangouts, InvitationAffinity, InvitationData,
+    LinkSharingStatus, NotificationLevel, ParticipantId, SelfState, View,
 };
 
 use std::convert::TryFrom;
@@ -46,13 +46,12 @@ impl TryFrom<raw::Conversation> for Conversation {
         let conversation_id = val.header.conversation_id.id;
         let id = val.header.details.id.id;
 
-        let typ = match val.header.details.typ {
-            raw::ConversationType::OneToOne => ConversationType::OneOnOne {},
-            raw::ConversationType::Group => ConversationType::Group {
-                name: val.header.details.name.unwrap(),
-            },
+        let name = match val.header.details.typ {
+            raw::ConversationType::OneToOne => None,
+            raw::ConversationType::Group => val.header.details.name,
         };
 
+        // Convert various status values.
         let self_conversation_state = val.header.details.self_conversation_state;
         let status = self_conversation_state.status.into();
         let notification_level = self_conversation_state.notification_level.into();
@@ -62,22 +61,35 @@ impl TryFrom<raw::Conversation> for Conversation {
             .map(From::from)
             .collect();
 
+        // Convert invitation data.
         let invitation = InvitationData {
             inviter: self_conversation_state.inviter_id.into(),
             timestamp: from_timestamp(self_conversation_state.invite_timestamp.parse()?),
+            affinity: self_conversation_state.invite_affinity.into(),
+        };
+
+        let self_state = SelfState {
+            invitation,
+            notification_level,
+            status,
+            views,
         };
 
         let sort_timestamp = from_timestamp(self_conversation_state.sort_timestamp.parse()?);
+        let group_link_sharing_status = val.header.details.group_link_sharing_status.into();
+
+        let participants = Vec::new();
+        let events = Vec::new();
 
         Ok(Self {
             conversation_id,
             id,
-            typ,
-            status,
-            notification_level,
-            views,
-            invitation,
+            name,
+            participants,
+            events,
+            self_state,
             sort_timestamp,
+            group_link_sharing_status,
         })
     }
 }
@@ -122,8 +134,33 @@ impl From<raw::View> for View {
     }
 }
 
+impl From<Option<raw::InvitationAffinity>> for InvitationAffinity {
+    #[inline]
+    fn from(val: Option<raw::InvitationAffinity>) -> Self {
+        match val {
+            Some(val) => match val {
+                raw::InvitationAffinity::Low => Self::Low,
+                raw::InvitationAffinity::High => Self::High,
+            },
+            None => Self::None,
+        }
+    }
+}
+
+impl From<raw::LinkSharingStatus> for LinkSharingStatus {
+    #[inline]
+    fn from(val: raw::LinkSharingStatus) -> Self {
+        match val {
+            raw::LinkSharingStatus::Off => Self::Off,
+            raw::LinkSharingStatus::On => Self::On,
+        }
+    }
+}
+
 #[inline]
-fn from_timestamp(secs: i64) -> DateTime<Utc> {
-    let naive = NaiveDateTime::from_timestamp(secs, 0);
+fn from_timestamp(nano: i64) -> DateTime<Utc> {
+    let secs = nano / 10i64.pow(9);
+    let rem = nano % 10i64.pow(9);
+    let naive = NaiveDateTime::from_timestamp(secs, rem as u32);
     DateTime::from_utc(naive, Utc)
 }

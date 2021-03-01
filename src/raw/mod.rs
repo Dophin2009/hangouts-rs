@@ -57,7 +57,7 @@ pub struct ConversationDetails {
     pub fork_on_external_invite: bool,
     pub network_type: Vec<String>,
     pub force_history_state: String,
-    pub group_link_sharing_status: String,
+    pub group_link_sharing_status: LinkSharingStatus,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -84,6 +84,15 @@ pub enum ConversationType {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum LinkSharingStatus {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "LINK_SHARING_OFF"))]
+    Off,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "LINK_SHARING_ON"))]
+    On,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "serde-impl",
     derive(serde::Deserialize, serde::Serialize),
@@ -97,7 +106,7 @@ pub struct SelfConversationState {
     pub inviter_id: ParticipantId,
     pub invite_timestamp: String,
     pub invitation_display_type: Option<String>,
-    pub invite_affinity: Option<String>,
+    pub invite_affinity: Option<InvitationAffinity>,
     pub sort_timestamp: String,
     pub active_timestamp: Option<String>,
     // TODO:
@@ -143,6 +152,15 @@ pub enum ConversationStatus {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum InvitationAffinity {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "LOW"))]
+    Low,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "HIGH"))]
+    High,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "serde-impl",
     derive(serde::Deserialize, serde::Serialize),
@@ -163,8 +181,8 @@ pub struct ParticipantData {
     pub id: ParticipantId,
     pub fallback_name: Option<String>,
     pub invitation_status: Option<String>,
-    pub participant_type: Option<String>,
-    pub new_invitation_status: Option<String>,
+    pub participant_type: Option<ParticipantType>,
+    pub new_invitation_status: Option<InvitationStatus>,
     pub in_different_customer_as_requester: Option<bool>,
     pub domain_id: Option<String>,
     // TODO:
@@ -172,10 +190,28 @@ pub struct ParticipantData {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum ParticipantType {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "GAIA"))]
+    Gaia,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "OFF_NETWORK_PHONE"))]
+    OffNetworkPhone,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum InvitationStatus {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "PENDING_INVITATION"))]
+    Pending,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "ACCEPTED_INVITATION"))]
+    Accepted,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "serde-impl",
     derive(serde::Deserialize, serde::Serialize),
-    serde(deny_unknown_fields)
+    // serde(deny_unknown_fields)
 )]
 pub struct Event {
     #[cfg_attr(feature = "serde-impl", serde(flatten))]
@@ -189,7 +225,7 @@ pub struct Event {
 #[cfg_attr(
     feature = "serde-impl",
     derive(serde::Deserialize, serde::Serialize),
-    serde(deny_unknown_fields)
+    // serde(deny_unknown_fields)
 )]
 pub struct EventHeader {
     pub conversation_id: ConversationId,
@@ -252,7 +288,7 @@ pub enum EventData {
 
     #[cfg_attr(feature = "serde-impl", serde(rename = "membership_change"))]
     MembershipChange {
-        #[cfg_attr(feature = "serde-impl", serde(flatten))]
+        #[cfg_attr(feature = "serde-impl", serde(rename = "type"))]
         typ: String,
         participant_id: Vec<ParticipantId>,
     },
@@ -268,9 +304,9 @@ pub enum EventData {
     serde(deny_unknown_fields)
 )]
 pub struct ChatSegments {
-    #[cfg_attr(feature = "serde-impl", serde(rename = "segment"))]
+    #[cfg_attr(feature = "serde-impl", serde(rename = "segment", default))]
     pub segments: Vec<ChatSegment>,
-    #[cfg_attr(feature = "serde-impl", serde(rename = "attachment"))]
+    #[cfg_attr(feature = "serde-impl", serde(rename = "attachment", default))]
     pub attachments: Vec<AttachmentSegment>,
 }
 
