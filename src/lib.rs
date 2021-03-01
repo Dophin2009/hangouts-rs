@@ -96,7 +96,7 @@ pub enum NotificationLevel {
     Ring,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct ParticipantId {
     pub gaia_id: String,
@@ -113,7 +113,6 @@ pub enum ParticipantType {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct ReadState {
-    pub participant_id: ParticipantId,
     pub timestamp: DateTime<Utc>,
 }
 

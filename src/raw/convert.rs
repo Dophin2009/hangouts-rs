@@ -1,9 +1,11 @@
-use crate::raw;
+use crate::{raw, ParticipantType, ReadState};
 use crate::{
     Conversation, ConversationStatus, Hangouts, InvitationAffinity, InvitationData,
-    LinkSharingStatus, NotificationLevel, ParticipantId, SelfState, View,
+    InvitationStatus, LinkSharingStatus, NotificationLevel, Participant, ParticipantId, SelfState,
+    View,
 };
 
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
 use std::num::ParseIntError;
@@ -78,7 +80,34 @@ impl TryFrom<raw::Conversation> for Conversation {
         let sort_timestamp = from_timestamp(self_conversation_state.sort_timestamp.parse()?);
         let group_link_sharing_status = val.header.details.group_link_sharing_status.into();
 
-        let participants = Vec::new();
+        // Collect participant read states.
+        let mut read_states: HashMap<_, _> = val
+            .header
+            .details
+            .read_state
+            .into_iter()
+            .map(|rs| -> Result<_, ParseIntError> {
+                let timestamp = from_timestamp(rs.latest_read_timestamp.parse()?);
+                Ok((rs.participant_id, ReadState { timestamp }))
+            })
+            .collect::<Result<_, _>>()?;
+
+        // Convert participant data.
+        let participants = val
+            .header
+            .details
+            .participant_data
+            .into_iter()
+            .map(|pd| Participant {
+                id: pd.id.clone().into(),
+                typ: pd.participant_type.map(From::from),
+                fallback_name: pd.fallback_name,
+                invitation_status: pd.invitation_status.map(From::from),
+                new_invitation_status: pd.new_invitation_status.map(From::from),
+                read_state: read_states.remove(&pd.id).unwrap(),
+            })
+            .collect();
+
         let events = Vec::new();
 
         Ok(Self {
@@ -100,6 +129,16 @@ impl From<raw::ParticipantId> for ParticipantId {
         Self {
             gaia_id: val.gaia_id,
             chat_id: val.chat_id,
+        }
+    }
+}
+
+impl From<raw::ParticipantType> for ParticipantType {
+    #[inline]
+    fn from(val: raw::ParticipantType) -> Self {
+        match val {
+            raw::ParticipantType::Gaia => Self::Gaia,
+            raw::ParticipantType::OffNetworkPhone => Self::OffNetworkPhone,
         }
     }
 }
@@ -134,6 +173,16 @@ impl From<raw::View> for View {
     }
 }
 
+impl From<raw::InvitationStatus> for InvitationStatus {
+    #[inline]
+    fn from(val: raw::InvitationStatus) -> Self {
+        match val {
+            raw::InvitationStatus::Pending => Self::Pending,
+            raw::InvitationStatus::Accepted => Self::Accepted,
+        }
+    }
+}
+
 impl From<Option<raw::InvitationAffinity>> for InvitationAffinity {
     #[inline]
     fn from(val: Option<raw::InvitationAffinity>) -> Self {
@@ -158,9 +207,10 @@ impl From<raw::LinkSharingStatus> for LinkSharingStatus {
 }
 
 #[inline]
-fn from_timestamp(nano: i64) -> DateTime<Utc> {
-    let secs = nano / 10i64.pow(9);
-    let rem = nano % 10i64.pow(9);
-    let naive = NaiveDateTime::from_timestamp(secs, rem as u32);
+fn from_timestamp(millisecs: i64) -> DateTime<Utc> {
+    const MILLI: i64 = 10i64.pow(6);
+    let secs = millisecs / MILLI;
+    let milli = millisecs % MILLI;
+    let naive = NaiveDateTime::from_timestamp(secs, (milli * 1000) as u32);
     DateTime::from_utc(naive, Utc)
 }

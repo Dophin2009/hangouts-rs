@@ -160,7 +160,7 @@ pub enum InvitationAffinity {
     High,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(
     feature = "serde-impl",
     derive(serde::Deserialize, serde::Serialize),
@@ -180,7 +180,7 @@ pub struct ParticipantId {
 pub struct ParticipantData {
     pub id: ParticipantId,
     pub fallback_name: Option<String>,
-    pub invitation_status: Option<String>,
+    pub invitation_status: Option<InvitationStatus>,
     pub participant_type: Option<ParticipantType>,
     pub new_invitation_status: Option<InvitationStatus>,
     pub in_different_customer_as_requester: Option<bool>,
