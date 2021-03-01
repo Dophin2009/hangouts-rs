@@ -2,10 +2,14 @@
 #[cfg(feature = "raw")]
 pub mod raw;
 
+mod event;
+
+pub use crate::event::*;
 pub use chrono;
 
 use chrono::{DateTime, Utc};
 
+/// Top-level struct for Hangouts data.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct Hangouts {
@@ -19,27 +23,35 @@ pub struct Hangouts {
 pub struct Conversation {
     pub conversation_id: String,
     pub id: String,
+
+    /// Name of the conversation. Typically [`None`] if the conversation is one-on-one.
     pub name: Option<String>,
-
-    /// List of participants.
+    /// List of participants in the conversation.
     pub participants: Vec<Participant>,
-
     /// List of conversation events.
     pub events: Vec<Event>,
 
+    /// User state with regards to the conversation.
     pub self_state: SelfState,
+    /// Timestamp used to sort conversations.
     pub sort_timestamp: DateTime<Utc>,
+
+    /// Currently set group link sharing mode.
     pub group_link_sharing_status: LinkSharingStatus,
 }
 
+/// A participant in a conversation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct Participant {
+    /// ID of the participant.
     pub id: ParticipantId,
-
+    /// Fallback name.
     pub fallback_name: Option<String>,
-
+    /// Type of the participant.
     pub typ: Option<ParticipantType>,
+
+    /// Invitation status for the participant.
     pub invitation_status: Option<InvitationStatus>,
     pub new_invitation_status: Option<InvitationStatus>,
 
@@ -47,23 +59,60 @@ pub struct Participant {
     pub read_state: ReadState,
 }
 
+/// Composite ID for a participant user.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub struct ParticipantId {
+    /// Gaia ID component.
+    pub gaia_id: String,
+    /// Chat ID component.
+    pub chat_id: String,
+}
+
+/// Type of a given participant.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum ParticipantType {
+    Gaia,
+    OffNetworkPhone,
+}
+
+/// Metadata regarding the user's status in a conversation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct SelfState {
+    /// The user's involvement status.
     pub status: ConversationStatus,
+    /// Currently set notification level.
     pub notification_level: NotificationLevel,
+    /// Data about the invitation to the user for the conversation.
     pub invitation: InvitationData,
-    // TODO: Better name for this property
+    /// Views the conversation are present in.
+    //  TODO: Better name for this property
     pub views: Vec<View>,
 }
 
+/// Status of a participant's involvement in a conversation.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum ConversationStatus {
+    /// The participant is active in the conversation.
+    Active,
+    /// The participant has been invited, but is not active in the conversation.
+    Invited,
+}
+
+/// Invitation status of a participant.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub enum InvitationStatus {
+    /// The invitation is pending.
     Pending,
+    /// The invitation has been accepted.
     Accepted,
 }
 
+/// Metadata for the invitation to the user to join a conversation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct InvitationData {
@@ -74,55 +123,48 @@ pub struct InvitationData {
     pub affinity: InvitationAffinity,
 }
 
+/// Affinity of the invitation.
+//  TODO: not really sure what this does.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub enum InvitationAffinity {
+    /// No invitation affinity specified.
     None,
+    /// Low invitation affinity.
     Low,
+    /// High invitation affinity.
     High,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum ConversationStatus {
-    Active,
-    Invited,
-}
-
+/// Notification ring level for a participant in a conversation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub enum NotificationLevel {
+    /// Notifications have been set to quiet.
     Quiet,
+    /// Notifications have been set to ring.
     Ring,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct ParticipantId {
-    pub gaia_id: String,
-    pub chat_id: String,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum ParticipantType {
-    Gaia,
-    OffNetworkPhone,
-}
-
+/// Last-read information in a conversation for a participant.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub struct ReadState {
+    /// Last time of read.
     pub timestamp: DateTime<Utc>,
 }
 
+/// A Hangouts view collection.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub enum View {
+    /// The hangout is visible in the inbox.
     Inbox,
+    /// The hangout has been archived.
     Archived,
 }
 
+/// Link sharing enabled/disabled setting for a conversation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
 pub enum LinkSharingStatus {
@@ -130,236 +172,4 @@ pub enum LinkSharingStatus {
     Off,
     /// Link sharing is enabled.
     On,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct Event {
-    /// ID of the event.
-    pub id: String,
-    /// Sender / initiatior of the event.
-    pub sender: ParticipantId,
-    /// Time of event.
-    pub timestamp: DateTime<Utc>,
-
-    /// Event-specific data.
-    pub data: EventData,
-
-    /// User's state with regards to the event.
-    pub self_state: SelfEventState,
-    /// Flag that indicates whether the event advances the sort timestamp of the conversation.
-    pub advances_sort_timestamp: bool,
-
-    pub version: u64,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct SelfEventState {
-    /// Client generated ID value for the event.
-    pub client_generated_id: Option<String>,
-    /// Notification level for the event.
-    pub notification_level: Option<NotificationLevel>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum EventData {
-    /// A regular chat message.
-    ChatMessage(ChatMessage),
-    /// A hangout event.
-    HangoutEvent(HangoutEvent),
-    /// Conversation participant membership change.
-    MembershipChange(MembershipChange),
-    /// Conversation name change.
-    ConversationRename(ConversationRename),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct ChatMessage {
-    pub contents: Vec<ChatSegment>,
-    pub attachments: Vec<AttachmentSegment>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum ChatSegment {
-    Text {
-        text: String,
-        format: Formatting,
-    },
-    Link {
-        text: String,
-        target: String,
-        display_url: Option<String>,
-        format: Formatting,
-    },
-    LinkBreak {
-        text: Option<String>,
-        format: Formatting,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct Formatting {
-    pub bold: bool,
-    pub italics: bool,
-    pub strikethrough: bool,
-    pub underline: bool,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct AttachmentSegment {
-    pub id: String,
-    pub item: EmbedItem,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct EmbedItem {
-    pub id: Option<String>,
-    pub photo: Option<Photo>,
-    pub place: Option<PlaceV2>,
-    pub thing: Option<ThingV2>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum EmbedItemType {
-    Photo,
-    Place,
-    Thing,
-    ThingV2,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct Photo {
-    pub media_type: MediaType,
-    pub thumbnail: Thumbnail,
-
-    pub album_id: String,
-    pub photo_id: String,
-    pub stream_id: Vec<String>,
-
-    pub url: String,
-    pub download_url: Option<String>,
-
-    pub original_url: String,
-    pub owner_obfuscated_id: String,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct Thumbnail {
-    pub height: u64,
-    pub width: u64,
-    pub url: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct PlaceV2 {
-    pub url: String,
-    pub name: Option<String>,
-
-    pub address: Address,
-    pub geo: Geo,
-    pub representative_image: RepresentativeImage,
-
-    pub place_id: Option<String>,
-    pub cluster_id: Option<String>,
-    pub reference_id: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct Address {
-    pub name: Option<String>,
-    pub street: Option<String>,
-    pub locality: Option<String>,
-    pub region: Option<String>,
-    pub country: Option<String>,
-    pub postal_code: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct Geo {
-    pub latitude: f64,
-    pub longitude: f64,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct RepresentativeImage {
-    pub id: String,
-    pub url: String,
-    pub width: Option<u64>,
-    pub height: Option<u64>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct ThingV2 {
-    pub url: String,
-    pub name: Option<String>,
-    pub representative_image: RepresentativeImage,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct HangoutEvent {
-    /// Type of the event.
-    pub typ: HangoutEventType,
-    pub media_type: Option<MediaType>,
-    pub participants: Vec<ParticipantId>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum HangoutEventType {
-    /// Signals the start of a hangout event.
-    Start,
-    /// Signals the end of a hangout event.
-    End {
-        /// Duration of hangout in seconds.
-        duration: u64,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum MediaType {
-    Audio,
-    Video,
-    AudioVideo,
-    Photo,
-    AnimatedPhoto,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct MembershipChange {
-    pub typ: MembershipChangeType,
-    pub participants: Vec<ParticipantId>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub enum MembershipChangeType {
-    Join,
-    Leave,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
-pub struct ConversationRename {
-    /// Old conversation name.
-    old: String,
-    /// New conversation name.
-    new: String,
 }

@@ -405,6 +405,7 @@ impl From<raw::RepresentativeImage> for RepresentativeImage {
         Self {
             id: val.id,
             url: obj.url,
+            // TODO: Better error handling
             width: obj.width.map(|v| v.parse().unwrap()),
             height: obj.height.map(|v| v.parse().unwrap()),
         }
