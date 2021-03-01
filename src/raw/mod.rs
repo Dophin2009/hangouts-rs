@@ -1,4 +1,3 @@
-#[cfg(feature = "raw")]
 pub mod convert;
 
 #[derive(Debug, Clone, PartialEq)]
