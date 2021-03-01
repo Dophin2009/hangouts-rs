@@ -218,7 +218,24 @@ pub struct Event {
     pub header: EventHeader,
     #[cfg_attr(feature = "serde-impl", serde(flatten))]
     pub data: EventData,
-    pub event_type: String,
+    pub event_type: EventType,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum EventType {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "REGULAR_CHAT_MESSAGE"))]
+    RegularChatMessage,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "SMS"))]
+    Sms,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "HANGOUT_EVENT"))]
+    HangoutEvent,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "ADD_USER"))]
+    AddUser,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "REMOVE_USER"))]
+    RemoveUser,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "RENAME_CONVERSATION"))]
+    RenameConversation,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -234,10 +251,17 @@ pub struct EventHeader {
     pub self_event_state: SelfEventState,
     pub event_id: String,
     pub advances_sort_timestamp: bool,
-    pub event_otr: String,
+    pub event_otr: EventOtr,
     // TODO:
     // pub delivery_medium: serde_json::Value,
     pub event_version: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum EventOtr {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "ON_THE_RECORD"))]
+    OnTheRecord,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -282,19 +306,43 @@ pub enum EventData {
     HangoutEvent {
         #[cfg_attr(feature = "serde-impl", serde(flatten))]
         data: HangoutEvent,
-        media_type: Option<String>,
+        media_type: Option<MediaType>,
         participant_id: Vec<ParticipantId>,
     },
 
     #[cfg_attr(feature = "serde-impl", serde(rename = "membership_change"))]
     MembershipChange {
         #[cfg_attr(feature = "serde-impl", serde(rename = "type"))]
-        typ: String,
+        typ: MembershipChangeType,
         participant_id: Vec<ParticipantId>,
     },
 
     #[cfg_attr(feature = "serde-impl", serde(rename = "conversation_rename"))]
     ConversationRename { new_name: String, old_name: String },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum MembershipChangeType {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "JOIN"))]
+    Join,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "LEAVE"))]
+    Leave,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum MediaType {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "AUDIO_ONLY"))]
+    AudioOnly,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "VIDEO"))]
+    Video,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "AUDIO_VIDEO"))]
+    AudioVideo,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "PHOTO"))]
+    Photo,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "ANIMATED_PHOTO"))]
+    AnimatedPhoto,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -404,7 +452,20 @@ pub struct EmbedItem {
     pub place_v2: Option<PlaceV2>,
     pub thing_v2: Option<ThingV2>,
     #[cfg_attr(feature = "serde-impl", serde(rename = "type"))]
-    pub types: Vec<String>,
+    pub types: Vec<EmbedItemType>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum EmbedItemType {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "PLUS_PHOTO"))]
+    PlusPhoto,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "PLACE_V2"))]
+    PlaceV2,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "THING"))]
+    Thing,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "THING_V2"))]
+    ThingV2,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -415,7 +476,7 @@ pub struct EmbedItem {
 )]
 pub struct PlusPhoto {
     pub album_id: String,
-    pub media_type: String,
+    pub media_type: MediaType,
     pub original_content_url: String,
     pub owner_obfuscated_id: String,
     pub photo_id: String,
@@ -463,8 +524,15 @@ pub struct PlaceV2 {
 )]
 pub struct Address {
     #[cfg_attr(feature = "serde-impl", serde(rename = "type", default))]
-    pub types: Vec<String>,
+    pub types: Vec<AddressType>,
     pub postal_address_v2: PostalAddressV2,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum AddressType {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "POSTAL_ADDRESS_V2"))]
+    PostalAddressV2,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -490,8 +558,19 @@ pub struct PostalAddressV2 {
 )]
 pub struct Geo {
     #[cfg_attr(feature = "serde-impl", serde(rename = "type", default))]
-    pub types: Vec<String>,
+    pub types: Vec<GeoType>,
     pub geo_coordinates_v2: GeoCoordinatesV2,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "serde-impl",
+    derive(serde::Deserialize, serde::Serialize),
+    serde(deny_unknown_fields)
+)]
+pub enum GeoType {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "GEO_COORDINATES_V2"))]
+    GeoCoordinatesV2,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -513,9 +592,24 @@ pub struct GeoCoordinatesV2 {
 )]
 pub struct RepresentativeImage {
     #[cfg_attr(feature = "serde-impl", serde(rename = "type"))]
-    pub types: Vec<String>,
+    pub types: Vec<RepresentativeImageType>,
     pub id: String,
     pub image_object_v2: ImageObjectV2,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-impl", derive(serde::Deserialize, serde::Serialize))]
+pub enum RepresentativeImageType {
+    #[cfg_attr(feature = "serde-impl", serde(rename = "IMAGE_OBJECT_V2"))]
+    ImageObjectV2,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "MEDIA_OBJECT_V2"))]
+    MediaObjectV2,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "CREATIVE_WORK_V2"))]
+    CreativeWorkV2,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "THING_V2"))]
+    ThingV2,
+    #[cfg_attr(feature = "serde-impl", serde(rename = "THING"))]
+    Thing,
 }
 
 #[derive(Debug, Clone, PartialEq)]
